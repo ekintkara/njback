@@ -3,6 +3,8 @@ import { DatabaseConfig } from './config/database';
 import { config, validateConfig } from './config/env';
 import { captureException } from './config/sentry';
 import Logger from './utils/logger';
+import SocketService from './services/socket.service';
+import { createServer } from 'http';
 
 process.on('uncaughtException', (error: Error) => {
   Logger.error('Uncaught Exception', error);
@@ -26,12 +28,16 @@ async function startServer(): Promise<void> {
 
     const app = createApp();
 
-    const server = app.listen(config.PORT, () => {
+    const httpServer = createServer(app);
+    new SocketService(httpServer);
+
+    const server = httpServer.listen(config.PORT, () => {
       Logger.info(`🚀 Server running on port ${config.PORT}`, {
         port: config.PORT,
         environment: config.NODE_ENV,
         healthCheck: `http://localhost:${config.PORT}/health`,
-        authAPI: `http://localhost:${config.PORT}/api/auth`
+        authAPI: `http://localhost:${config.PORT}/api/auth`,
+        socketIO: 'Socket.IO server initialized'
       });
     });
 
