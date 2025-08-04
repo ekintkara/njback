@@ -217,4 +217,78 @@ describe('Auth Integration Tests', () => {
       expect(response.body.errorCode).toBe('VALIDATION_ERROR');
     });
   });
+
+  describe('POST /api/auth/refresh', () => {
+    const validUserData = {
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Password123'
+    };
+
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(validUserData)
+        .expect(201);
+
+      refreshToken = response.body.data.refreshToken;
+    });
+
+    it('should refresh tokens successfully with valid refresh token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body).toHaveProperty('message', 'Tokens refreshed successfully');
+      expect(response.body.data).toHaveProperty('accessToken');
+      expect(response.body.data).toHaveProperty('refreshToken');
+      expect(response.body.data.accessToken).not.toBe(refreshToken);
+    });
+
+    it('should return 401 for invalid refresh token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: 'invalid-refresh-token' })
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('Invalid or expired refresh token');
+    });
+
+    it('should return 400 for missing refresh token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({})
+        .expect(400);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return 400 for empty refresh token', async () => {
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: '' })
+        .expect(400);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.errorCode).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return 401 for expired refresh token', async () => {
+      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzM0NTY3ODkwYWJjZGVmMTIzNDU2NzgiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDF9.invalid';
+
+      const response = await request(app)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: expiredToken })
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('Invalid or expired refresh token');
+    });
+  });
 });

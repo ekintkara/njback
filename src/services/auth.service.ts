@@ -13,6 +13,10 @@ export interface LoginData {
   password: string;
 }
 
+export interface RefreshTokenData {
+  refreshToken: string;
+}
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -139,6 +143,29 @@ export class AuthService {
 
       console.error('Login error:', error);
       throw new AppError('Login failed', 500);
+    }
+  }
+
+  async refreshTokens(refreshTokenData: RefreshTokenData): Promise<AuthTokens> {
+    const { refreshToken } = refreshTokenData;
+
+    try {
+      const decoded = await this.verifyRefreshToken(refreshToken);
+
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        throw new AppError('User not found', 401);
+      }
+
+      const tokens = this.generateTokens(user);
+      return tokens;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      console.error('Token refresh error:', error);
+      throw new AppError('Token refresh failed', 401);
     }
   }
 }

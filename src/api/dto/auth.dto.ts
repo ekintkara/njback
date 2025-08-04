@@ -28,3 +28,9 @@ export class LoginDto {
   @MinLength(1, { message: 'Password is required' })
   password!: string;
 }
+
+export class RefreshTokenDto {
+  @IsString({ message: 'Refresh token must be a string' })
+  @MinLength(1, { message: 'Refresh token is required' })
+  refreshToken!: string;
+}

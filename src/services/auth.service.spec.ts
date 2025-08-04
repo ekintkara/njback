@@ -158,4 +158,59 @@ describe('AuthService', () => {
       expect(decoded.username).toBe(validUserData.username);
     });
   });
+
+  describe('refreshTokens', () => {
+    const validUserData = {
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Password123'
+    };
+
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const tokens = await authService.register(validUserData);
+      refreshToken = tokens.refreshToken;
+    });
+
+    it('should successfully refresh tokens with valid refresh token', async () => {
+      const result = await authService.refreshTokens({ refreshToken });
+
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+      expect(typeof result.accessToken).toBe('string');
+      expect(typeof result.refreshToken).toBe('string');
+      expect(result.accessToken).not.toBe(refreshToken);
+    });
+
+    it('should throw error for invalid refresh token', async () => {
+      await expect(
+        authService.refreshTokens({ refreshToken: 'invalid-refresh-token' })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should throw error for expired refresh token', async () => {
+      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzM0NTY3ODkwYWJjZGVmMTIzNDU2NzgiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDF9.invalid';
+
+      await expect(
+        authService.refreshTokens({ refreshToken: expiredToken })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should return new tokens with same user info', async () => {
+      const result = await authService.refreshTokens({ refreshToken });
+
+      const decoded = await authService.verifyAccessToken(result.accessToken);
+      expect(decoded.email).toBe(validUserData.email);
+      expect(decoded.username).toBe(validUserData.username);
+    });
+
+    it('should throw error if user no longer exists', async () => {
+      await User.findOneAndDelete({ email: validUserData.email });
+
+      await expect(
+        authService.refreshTokens({ refreshToken })
+      ).rejects.toThrow(AppError);
+    });
+  });
 });

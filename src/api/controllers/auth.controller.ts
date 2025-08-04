@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../services/auth.service';
-import { RegisterDto, LoginDto } from '../dto/auth.dto';
+import { RegisterDto, LoginDto, RefreshTokenDto } from '../dto/auth.dto';
 
 export class AuthController {
   private authService: AuthService;
@@ -34,6 +34,22 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Login successful',
+        data: tokens
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  refreshTokens = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const refreshTokenData: RefreshTokenDto = req.body;
+
+      const tokens = await this.authService.refreshTokens(refreshTokenData);
+
+      res.status(200).json({
+        success: true,
+        message: 'Tokens refreshed successfully',
         data: tokens
       });
     } catch (error) {
