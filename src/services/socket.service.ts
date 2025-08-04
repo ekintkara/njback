@@ -2,20 +2,34 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import { createSocketServer } from '../config/socket';
 import { socketAuthMiddleware, AuthenticatedSocket } from '../api/middlewares/socket.middleware';
+import { UserStatusEvents } from '../socket/events/user-status.events';
+import { redisClient } from '../config/redis';
 import Logger from '../utils/logger';
 
 export class SocketService {
   private io: SocketIOServer;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
+  private userStatusEvents: UserStatusEvents;
 
   constructor(httpServer: HTTPServer) {
     this.io = createSocketServer(httpServer);
+    this.userStatusEvents = new UserStatusEvents(this.io);
     this.setupMiddleware();
     this.setupEventHandlers();
+    this.initializeRedis();
   }
 
   private setupMiddleware(): void {
     this.io.use(socketAuthMiddleware);
+  }
+
+  private async initializeRedis(): Promise<void> {
+    try {
+      await redisClient.connect();
+      Logger.info('Redis connected for Socket.IO service');
+    } catch (error) {
+      Logger.error('Failed to connect Redis for Socket.IO service', error as Error);
+    }
   }
 
   private setupEventHandlers(): void {
@@ -24,10 +38,11 @@ export class SocketService {
       this.handleConnection(authSocket);
       this.handleDisconnection(authSocket);
       this.handleError(authSocket);
+      this.handleUserStatusEvents(authSocket);
     });
   }
 
-  private handleConnection(socket: AuthenticatedSocket): void {
+  private async handleConnection(socket: AuthenticatedSocket): Promise<void> {
     const { userId, username } = socket.user;
 
     // Store user connection
@@ -46,10 +61,11 @@ export class SocketService {
       userId,
       username
     });
+    await this.userStatusEvents.handleUserOnline(socket);
   }
 
   private handleDisconnection(socket: AuthenticatedSocket): void {
-    socket.on('disconnect', (reason: string) => {
+    socket.on('disconnect', async (reason: string) => {
       const { userId, username } = socket.user;
 
       // Remove user connection
@@ -62,6 +78,8 @@ export class SocketService {
         reason,
         totalConnections: this.connectedUsers.size
       });
+
+      await this.userStatusEvents.handleUserOffline(socket);
     });
   }
 
@@ -72,6 +90,16 @@ export class SocketService {
         userId: socket.user?.userId,
         username: socket.user?.username
       });
+    });
+  }
+
+  private handleUserStatusEvents(socket: AuthenticatedSocket): void {
+    socket.on('get_online_users', async () => {
+      await this.userStatusEvents.getOnlineUsersForSocket(socket);
+    });
+
+    socket.on('get_user_status', async (data: { userId: string }) => {
+      await this.userStatusEvents.handleGetUserStatus(socket, data);
     });
   }
 

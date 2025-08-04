@@ -23,7 +23,13 @@ export const config = {
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
 
   SENTRY_DSN: process.env.SENTRY_DSN,
-  APP_VERSION: process.env.APP_VERSION || '1.0.0'
+  APP_VERSION: process.env.APP_VERSION || '1.0.0',
+
+  REDIS_HOST: process.env.REDIS_HOST || 'localhost',
+  REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379'),
+  REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+  REDIS_DB: parseInt(process.env.REDIS_DB || '0'),
+  REDIS_KEY_PREFIX: process.env.REDIS_KEY_PREFIX || 'rtm:'
 };
 
 export function validateConfig(): void {

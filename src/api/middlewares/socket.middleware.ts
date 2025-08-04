@@ -22,14 +22,17 @@ export interface JWTPayload {
 
 export const socketAuthMiddleware = async (socket: Socket, next: (err?: Error) => void) => {
   try {
-    // Get token from auth header or query parameter
     let token: string | undefined;
-    
-    const authHeader = socket.handshake.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    } else if (socket.handshake.query.token) {
-      token = socket.handshake.query.token as string;
+
+    if (socket.handshake.auth && socket.handshake.auth.token) {
+      token = socket.handshake.auth.token as string;
+    } else {
+      const authHeader = socket.handshake.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      } else if (socket.handshake.query.token) {
+        token = socket.handshake.query.token as string;
+      }
     }
 
     if (!token) {
@@ -41,10 +44,8 @@ export const socketAuthMiddleware = async (socket: Socket, next: (err?: Error) =
       return next(new Error('Authentication token required'));
     }
 
-    // Verify JWT token
     const decoded = jwt.verify(token, config.JWT_SECRET) as JWTPayload;
     
-    // Verify user exists
     const user = await User.findById(decoded.userId);
     if (!user) {
       Logger.security('Socket connection rejected - user not found', {
