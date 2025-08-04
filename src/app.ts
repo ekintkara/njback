@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config/env';
 import { errorHandler } from './api/middlewares/error.middleware';
 import authRoutes from './api/routes/auth.routes';
+import userRoutes from './api/routes/user.routes';
 
 export function createApp(): Application {
   const app: Application = express();
@@ -44,6 +45,7 @@ export function createApp(): Application {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/user', userRoutes);
 
   app.use('*', (req: Request, res: Response) => {
     res.status(404).json({

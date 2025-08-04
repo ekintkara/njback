@@ -73,3 +73,13 @@ export class DatabaseConfig {
     return this.isConnected;
   }
 }
+
+export const connectDB = async (): Promise<void> => {
+  const dbConfig = DatabaseConfig.getInstance();
+  await dbConfig.connect();
+};
+
+export const disconnectDB = async (): Promise<void> => {
+  const dbConfig = DatabaseConfig.getInstance();
+  await dbConfig.disconnect();
+};

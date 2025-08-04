@@ -17,6 +17,15 @@ export interface RefreshTokenData {
   refreshToken: string;
 }
 
+export interface UpdateProfileData {
+  username?: string;
+  email?: string;
+}
+
+export interface LogoutData {
+  refreshToken: string;
+}
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -166,6 +175,83 @@ export class AuthService {
 
       console.error('Token refresh error:', error);
       throw new AppError('Token refresh failed', 401);
+    }
+  }
+
+  async updateProfile(userId: string, updateData: UpdateProfileData): Promise<IUser> {
+    try {
+      const { username, email } = updateData;
+
+      if (!username && !email) {
+        throw new AppError('At least one field (username or email) must be provided', 400, 'VALIDATION_ERROR');
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
+
+      if (email && email !== user.email) {
+        const existingUserByEmail = await User.findOne({ email });
+        if (existingUserByEmail) {
+          throw new AppError('User with this email already exists', 400, 'DUPLICATE_EMAIL');
+        }
+      }
+
+      if (username && username !== user.username) {
+        const existingUserByUsername = await User.findOne({ username });
+        if (existingUserByUsername) {
+          throw new AppError('User with this username already exists', 400, 'DUPLICATE_USERNAME');
+        }
+      }
+
+      const updateFields: Partial<IUser> = {};
+      if (username) updateFields.username = username;
+      if (email) updateFields.email = email;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        updateFields,
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedUser) {
+        throw new AppError('Failed to update user profile', 500);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      console.error('Profile update error:', error);
+      throw new AppError('Profile update failed', 500);
+    }
+  }
+
+  async logout(logoutData: LogoutData): Promise<void> {
+    try {
+      const { refreshToken } = logoutData;
+
+      const decoded = await this.verifyRefreshToken(refreshToken);
+
+      if (!decoded) {
+        throw new AppError('Invalid refresh token', 401, 'INVALID_TOKEN');
+      }
+
+      const user = await User.findById(decoded.userId);
+      if (!user) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
+
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      console.error('Logout error:', error);
+      throw new AppError('Logout failed', 500);
     }
   }
 }

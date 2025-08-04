@@ -213,4 +213,143 @@ describe('AuthService', () => {
       ).rejects.toThrow(AppError);
     });
   });
+
+  describe('updateProfile', () => {
+    const validUserData = {
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Password123'
+    };
+
+    let userId: string;
+
+    beforeEach(async () => {
+      await authService.register(validUserData);
+      const user = await User.findOne({ email: validUserData.email });
+      userId = user!._id.toString();
+    });
+
+    it('should successfully update username', async () => {
+      const updateData = { username: 'newusername' };
+
+      const result = await authService.updateProfile(userId, updateData);
+
+      expect(result.username).toBe('newusername');
+      expect(result.email).toBe(validUserData.email);
+    });
+
+    it('should successfully update email', async () => {
+      const updateData = { email: 'newemail@example.com' };
+
+      const result = await authService.updateProfile(userId, updateData);
+
+      expect(result.email).toBe('newemail@example.com');
+      expect(result.username).toBe(validUserData.username);
+    });
+
+    it('should successfully update both username and email', async () => {
+      const updateData = {
+        username: 'newusername',
+        email: 'newemail@example.com'
+      };
+
+      const result = await authService.updateProfile(userId, updateData);
+
+      expect(result.username).toBe('newusername');
+      expect(result.email).toBe('newemail@example.com');
+    });
+
+    it('should throw error for duplicate email', async () => {
+      await authService.register({
+        username: 'anotheruser',
+        email: 'another@example.com',
+        password: 'Password123'
+      });
+
+      await expect(
+        authService.updateProfile(userId, { email: 'another@example.com' })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should throw error for duplicate username', async () => {
+      await authService.register({
+        username: 'anotheruser',
+        email: 'another@example.com',
+        password: 'Password123'
+      });
+
+      await expect(
+        authService.updateProfile(userId, { username: 'anotheruser' })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should throw error when no fields provided', async () => {
+      await expect(
+        authService.updateProfile(userId, {})
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should throw error for non-existent user', async () => {
+      const fakeUserId = '507f1f77bcf86cd799439011';
+
+      await expect(
+        authService.updateProfile(fakeUserId, { username: 'newusername' })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should allow updating to same values', async () => {
+      const updateData = {
+        username: validUserData.username,
+        email: validUserData.email
+      };
+
+      const result = await authService.updateProfile(userId, updateData);
+
+      expect(result.username).toBe(validUserData.username);
+      expect(result.email).toBe(validUserData.email);
+    });
+  });
+
+  describe('logout', () => {
+    const validUserData = {
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Password123'
+    };
+
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      const tokens = await authService.register(validUserData);
+      refreshToken = tokens.refreshToken;
+    });
+
+    it('should successfully logout with valid refresh token', async () => {
+      await expect(
+        authService.logout({ refreshToken })
+      ).resolves.not.toThrow();
+    });
+
+    it('should throw error for invalid refresh token', async () => {
+      await expect(
+        authService.logout({ refreshToken: 'invalid-refresh-token' })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should throw error for expired refresh token', async () => {
+      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzM0NTY3ODkwYWJjZGVmMTIzNDU2NzgiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDF9.invalid';
+
+      await expect(
+        authService.logout({ refreshToken: expiredToken })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('should throw error if user no longer exists', async () => {
+      await User.findOneAndDelete({ email: validUserData.email });
+
+      await expect(
+        authService.logout({ refreshToken })
+      ).rejects.toThrow(AppError);
+    });
+  });
 });

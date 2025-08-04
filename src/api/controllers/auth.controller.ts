@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../services/auth.service';
-import { RegisterDto, LoginDto, RefreshTokenDto } from '../dto/auth.dto';
+import { RegisterDto, LoginDto, RefreshTokenDto, UpdateProfileDto, LogoutDto } from '../dto/auth.dto';
 import User from '../../models/user.model';
 
 export class AuthController {
@@ -78,6 +78,47 @@ export class AuthController {
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) {
+        throw new Error('User not found in request');
+      }
+
+      const updateData: UpdateProfileDto = req.body;
+
+      const updatedUser = await this.authService.updateProfile(req.user.userId, updateData);
+
+      res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const logoutData: LogoutDto = req.body;
+
+      await this.authService.logout(logoutData);
+
+      res.status(200).json({
+        success: true,
+        message: 'Logged out successfully'
       });
     } catch (error) {
       next(error);

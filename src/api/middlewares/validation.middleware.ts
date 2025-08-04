@@ -5,11 +5,13 @@ import { AppError } from '../../utils/app-error';
 
 export function validationMiddleware<T extends object>(
   dtoClass: new () => T,
+  source: 'body' | 'query' = 'body',
   skipMissingProperties = false
 ) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      const dto = plainToClass(dtoClass, req.body);
+      const sourceData = source === 'query' ? req.query : req.body;
+      const dto = plainToClass(dtoClass, sourceData);
 
       const errors: ValidationError[] = await validate(dto, {
         skipMissingProperties,
@@ -25,7 +27,11 @@ export function validationMiddleware<T extends object>(
         );
       }
 
-      req.body = dto;
+      if (source === 'query') {
+        req.query = dto as any;
+      } else {
+        req.body = dto;
+      }
       next();
     } catch (error) {
       if (error instanceof AppError) {
