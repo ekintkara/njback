@@ -20,7 +20,10 @@ export const config = {
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
 
-  LOG_LEVEL: process.env.LOG_LEVEL || 'info'
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+
+  SENTRY_DSN: process.env.SENTRY_DSN,
+  APP_VERSION: process.env.APP_VERSION || '1.0.0'
 };
 
 export function validateConfig(): void {

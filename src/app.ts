@@ -3,11 +3,16 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config/env';
+import { initSentry } from './config/sentry';
 import { errorHandler } from './api/middlewares/error.middleware';
+import { requestLoggingMiddleware, errorLoggingMiddleware } from './api/middlewares/logging.middleware';
 import authRoutes from './api/routes/auth.routes';
 import userRoutes from './api/routes/user.routes';
+import Logger from './utils/logger';
 
 export function createApp(): Application {
+  initSentry();
+
   const app: Application = express();
 
   app.use(helmet());
@@ -18,6 +23,8 @@ export function createApp(): Application {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
+
+  app.use(requestLoggingMiddleware);
 
   const limiter = rateLimit({
     windowMs: config.RATE_LIMIT_WINDOW_MS,
@@ -48,6 +55,13 @@ export function createApp(): Application {
   app.use('/api/user', userRoutes);
 
   app.use('*', (req: Request, res: Response) => {
+    Logger.warn(`Route not found: ${req.method} ${req.originalUrl}`, {
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
     res.status(404).json({
       success: false,
       message: `Route ${req.originalUrl} not found`,
@@ -55,6 +69,7 @@ export function createApp(): Application {
     });
   });
 
+  app.use(errorLoggingMiddleware);
   app.use(errorHandler);
 
   return app;

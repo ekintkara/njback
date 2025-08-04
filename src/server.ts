@@ -1,6 +1,21 @@
 import { createApp } from './app';
 import { DatabaseConfig } from './config/database';
 import { config, validateConfig } from './config/env';
+import { captureException } from './config/sentry';
+import Logger from './utils/logger';
+
+process.on('uncaughtException', (error: Error) => {
+  Logger.error('Uncaught Exception', error);
+  captureException(error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  const error = new Error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+  Logger.error('Unhandled Rejection', error);
+  captureException(error);
+  process.exit(1);
+});
 
 async function startServer(): Promise<void> {
   try {
@@ -12,24 +27,26 @@ async function startServer(): Promise<void> {
     const app = createApp();
 
     const server = app.listen(config.PORT, () => {
-      console.log(`🚀 Server running on port ${config.PORT}`);
-      console.log(`📊 Environment: ${config.NODE_ENV}`);
-      console.log(`🔗 Health check: http://localhost:${config.PORT}/health`);
-      console.log(`🔐 Auth API: http://localhost:${config.PORT}/api/auth`);
+      Logger.info(`🚀 Server running on port ${config.PORT}`, {
+        port: config.PORT,
+        environment: config.NODE_ENV,
+        healthCheck: `http://localhost:${config.PORT}/health`,
+        authAPI: `http://localhost:${config.PORT}/api/auth`
+      });
     });
 
     const gracefulShutdown = async (signal: string) => {
-      console.log(`\n${signal} received. Starting graceful shutdown...`);
+      Logger.info(`${signal} received. Starting graceful shutdown...`, { signal });
 
       server.close(async () => {
-        console.log('HTTP server closed');
+        Logger.info('HTTP server closed');
 
         try {
           await database.disconnect();
-          console.log('Database connection closed');
+          Logger.info('Database connection closed');
           process.exit(0);
         } catch (error) {
-          console.error('Error during graceful shutdown:', error);
+          Logger.error('Error during graceful shutdown', error as Error);
           process.exit(1);
         }
       });
@@ -39,7 +56,7 @@ async function startServer(): Promise<void> {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
-    console.error('Failed to start server:', error);
+    Logger.error('Failed to start server', error as Error);
     process.exit(1);
   }
 }

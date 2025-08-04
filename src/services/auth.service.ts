@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/user.model';
 import { AppError } from '../utils/app-error';
+import Logger from '../utils/logger';
 
 export interface RegisterData {
   username: string;
@@ -53,14 +54,18 @@ export class AuthService {
   async register(registerData: RegisterData): Promise<AuthTokens> {
     const { username, email, password } = registerData;
 
+    Logger.auth('User registration attempt', { email, username });
+
     try {
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
+        Logger.auth('Registration failed - email already exists', { email });
         throw new AppError('User with this email already exists', 400);
       }
 
       const existingUserByUsername = await User.findOne({ username });
       if (existingUserByUsername) {
+        Logger.auth('Registration failed - username already exists', { username });
         throw new AppError('User with this username already exists', 400);
       }
 
@@ -74,6 +79,12 @@ export class AuthService {
 
       const tokens = this.generateTokens(savedUser);
 
+      Logger.auth('User registration successful', {
+        userId: savedUser._id.toString(),
+        email: savedUser.email,
+        username: savedUser.username
+      });
+
       return tokens;
     } catch (error) {
       if (error instanceof AppError) {
@@ -85,7 +96,7 @@ export class AuthService {
         throw new AppError(`User with this ${field} already exists`, 400);
       }
 
-      console.error('Registration error:', error);
+      Logger.error('Registration error', error as Error, { email, username });
       throw new AppError('Registration failed', 500);
     }
   }
@@ -132,25 +143,36 @@ export class AuthService {
   async login(loginData: LoginData): Promise<AuthTokens> {
     const { email, password } = loginData;
 
+    Logger.auth('User login attempt', { email });
+
     try {
       const user = await User.findOne({ email });
       if (!user) {
+        Logger.security('Login failed - user not found', { email });
         throw new AppError('Invalid email or password', 401);
       }
 
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
+        Logger.security('Login failed - invalid password', { email, userId: user._id.toString() });
         throw new AppError('Invalid email or password', 401);
       }
 
       const tokens = this.generateTokens(user);
+
+      Logger.auth('User login successful', {
+        userId: user._id.toString(),
+        email: user.email,
+        username: user.username
+      });
+
       return tokens;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
 
-      console.error('Login error:', error);
+      Logger.error('Login error', error as Error, { email });
       throw new AppError('Login failed', 500);
     }
   }
