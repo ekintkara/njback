@@ -291,4 +291,91 @@ describe('Auth Integration Tests', () => {
       expect(response.body.message).toContain('Invalid or expired refresh token');
     });
   });
+
+  describe('GET /api/auth/me (Protected Endpoint)', () => {
+    const validUserData = {
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'Password123'
+    };
+
+    let accessToken: string;
+
+    beforeEach(async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send(validUserData)
+        .expect(201);
+
+      accessToken = response.body.data.accessToken;
+    });
+
+    it('should return user profile with valid access token', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.data).toHaveProperty('id');
+      expect(response.body.data).toHaveProperty('username', validUserData.username);
+      expect(response.body.data).toHaveProperty('email', validUserData.email);
+      expect(response.body.data).toHaveProperty('createdAt');
+      expect(response.body.data).toHaveProperty('updatedAt');
+      expect(response.body.data).not.toHaveProperty('password');
+    });
+
+    it('should return 401 for missing authorization header', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('Authorization header is required');
+      expect(response.body.errorCode).toBe('UNAUTHORIZED');
+    });
+
+    it('should return 401 for invalid authorization header format', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', 'Basic invalid-format')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('Authorization header must start with Bearer');
+      expect(response.body.errorCode).toBe('UNAUTHORIZED');
+    });
+
+    it('should return 401 for invalid access token', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', 'Bearer invalid-token')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.errorCode).toBe('APP_ERROR');
+    });
+
+    it('should return 401 for empty token', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', 'Bearer ')
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.errorCode).toBe('UNAUTHORIZED');
+    });
+
+    it('should return 401 for expired access token', async () => {
+      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzM0NTY3ODkwYWJjZGVmMTIzNDU2NzgiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE2MDAwMDAwMDF9.invalid';
+
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${expiredToken}`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.errorCode).toBe('APP_ERROR');
+    });
+  });
 });

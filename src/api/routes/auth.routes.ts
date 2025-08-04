@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { validationMiddleware } from '../middlewares/validation.middleware';
+import { authMiddleware } from '../middlewares/auth.middleware';
 import { RegisterDto, LoginDto, RefreshTokenDto } from '../dto/auth.dto';
 
 const router = Router();
@@ -22,6 +23,12 @@ router.post(
   '/refresh',
   validationMiddleware(RefreshTokenDto),
   authController.refreshTokens
+);
+
+router.get(
+  '/me',
+  authMiddleware,
+  authController.me
 );
 
 export default router;

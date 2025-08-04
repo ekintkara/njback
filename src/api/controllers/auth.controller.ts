@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../services/auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto } from '../dto/auth.dto';
+import User from '../../models/user.model';
 
 export class AuthController {
   private authService: AuthService;
@@ -51,6 +52,32 @@ export class AuthController {
         success: true,
         message: 'Tokens refreshed successfully',
         data: tokens
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user) {
+        throw new Error('User not found in request');
+      }
+
+      const user = await User.findById(req.user.userId);
+      if (!user) {
+        throw new Error('User not found in database');
+      }
+
+      res.status(200).json({
+        success: true,
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        }
       });
     } catch (error) {
       next(error);
