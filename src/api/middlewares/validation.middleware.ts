@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validate, ValidationError } from 'class-validator';
 import { plainToClass } from 'class-transformer';
+import { validationResult } from 'express-validator';
 import { AppError } from '../../utils/app-error';
 
 export function validationMiddleware<T extends object>(
@@ -42,3 +43,12 @@ export function validationMiddleware<T extends object>(
     }
   };
 }
+
+export const validateRequest = (req: Request, _res: Response, next: NextFunction) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map(error => error.msg).join(', ');
+    throw new AppError(`Validation failed: ${errorMessages}`, 400, 'VALIDATION_ERROR');
+  }
+  next();
+};

@@ -8,6 +8,8 @@ import { errorHandler } from './api/middlewares/error.middleware';
 import { requestLoggingMiddleware, errorLoggingMiddleware } from './api/middlewares/logging.middleware';
 import authRoutes from './api/routes/auth.routes';
 import userRoutes from './api/routes/user.routes';
+import conversationRoutes from './api/routes/conversation.routes';
+import messageRoutes from './api/routes/message.routes';
 import Logger from './utils/logger';
 
 export function createApp(): Application {
@@ -53,6 +55,8 @@ export function createApp(): Application {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/user', userRoutes);
+  app.use('/api/conversations', conversationRoutes);
+  app.use('/api/messages', messageRoutes);
 
   app.use('*', (req: Request, res: Response) => {
     Logger.warn(`Route not found: ${req.method} ${req.originalUrl}`, {

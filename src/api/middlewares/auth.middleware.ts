@@ -2,6 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../services/auth.service';
 import { AppError } from '../../utils/app-error';
 
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    username: string;
+  };
+}
+
 export const authMiddleware = async (
   req: Request,
   _res: Response,
