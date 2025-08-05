@@ -3,7 +3,7 @@ import { DatabaseConfig } from './config/database';
 import { config, validateConfig } from './config/env';
 import { captureException } from './config/sentry';
 import Logger from './utils/logger';
-import { SocketService } from './socket/socket.service';
+import { initializeSocketService } from './socket/socket.service';
 import { jobManager } from './jobs/job-manager';
 import { messageSubscriber } from './subscribers/message.subscriber';
 import { rabbitmqConfig } from './config/rabbitmq';
@@ -26,7 +26,7 @@ async function startServer(): Promise<void> {
     await database.connect();
     const app = createApp();
     const httpServer = createServer(app);
-    new SocketService(httpServer);
+    initializeSocketService(httpServer);
     await rabbitmqConfig.connect();
     await messageSubscriber.start();
     await jobManager.initialize();

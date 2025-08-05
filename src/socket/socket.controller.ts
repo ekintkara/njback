@@ -1,4 +1,5 @@
 import { Server as SocketIOServer } from 'socket.io';
+import { Types } from 'mongoose';
 import Logger from '../utils/logger';
 import { requireAuth, getConversationRoom } from './socket.middleware';
 import Conversation from '../models/conversation.model';
@@ -19,8 +20,7 @@ import {
 export class SocketController {
   private messageService: MessageService;
   constructor(
-    private io: SocketIOServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-    private socketService: any 
+    private io: SocketIOServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
   ) {
     this.messageService = new MessageService();
   }
@@ -50,7 +50,7 @@ export class SocketController {
         });
         return;
       }
-      if (!conversation.isParticipant(userId)) {
+      if (!conversation.isParticipant(new Types.ObjectId(userId))) {
         socket.emit(SOCKET_EVENTS.ERROR, {
           message: 'Access denied: You are not a participant in this conversation',
           code: 'ACCESS_DENIED'
@@ -74,7 +74,7 @@ export class SocketController {
     } catch (error) {
       Logger.error('[SOCKET] Error joining conversation', error instanceof Error ? error : new Error('Unknown error'), {
         socketId: socket.id,
-        userId: socket.userId,
+        userId: socket.userId || 'unknown',
         conversationId: data.conversationId,
         category: 'socket'
       });
@@ -112,7 +112,7 @@ export class SocketController {
     } catch (error) {
       Logger.error('[SOCKET] Error leaving conversation', error instanceof Error ? error : new Error('Unknown error'), {
         socketId: socket.id,
-        userId: socket.userId,
+        userId: socket.userId || 'unknown',
         conversationId: data.conversationId,
         category: 'socket'
       });
@@ -136,14 +136,15 @@ export class SocketController {
       });
       const message = await this.messageService.createMessage(conversationId, userId, content);
       const roomName = getConversationRoom(conversationId);
+      const populatedSender = message.senderId as any; // senderId is populated with user data
       this.io.to(roomName).emit(SOCKET_EVENTS.MESSAGE_NEW, {
         messageId: message._id.toString(),
         conversationId: message.conversationId.toString(),
-        senderId: message.senderId._id.toString(),
+        senderId: populatedSender._id.toString(),
         senderInfo: {
-          _id: message.senderId._id.toString(),
-          username: message.senderId.username,
-          email: message.senderId.email
+          _id: populatedSender._id.toString(),
+          username: populatedSender.username,
+          email: populatedSender.email
         },
         content: message.content,
         createdAt: message.createdAt.toISOString(),
@@ -159,7 +160,7 @@ export class SocketController {
     } catch (error) {
       Logger.error('[SOCKET] Error sending message', error instanceof Error ? error : new Error('Unknown error'), {
         socketId: socket.id,
-        userId: socket.userId,
+        userId: socket.userId || 'unknown',
         conversationId: data.conversationId,
         category: 'socket'
       });
@@ -192,7 +193,7 @@ export class SocketController {
     } catch (error) {
       Logger.error('[SOCKET] Error handling typing start', error instanceof Error ? error : new Error('Unknown error'), {
         socketId: socket.id,
-        userId: socket.userId,
+        userId: socket.userId || 'unknown',
         category: 'socket'
       });
     }
@@ -219,7 +220,7 @@ export class SocketController {
     } catch (error) {
       Logger.error('[SOCKET] Error handling typing stop', error instanceof Error ? error : new Error('Unknown error'), {
         socketId: socket.id,
-        userId: socket.userId,
+        userId: socket.userId || 'unknown',
         category: 'socket'
       });
     }

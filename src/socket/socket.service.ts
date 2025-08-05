@@ -26,7 +26,7 @@ export class SocketService {
       pingTimeout: 60000,
       pingInterval: 25000
     });
-    this.socketController = new SocketController(this.io, this);
+    this.socketController = new SocketController(this.io);
     this.setupMiddleware();
     this.setupEventHandlers();
     Logger.info('[SOCKET] Socket.IO server initialized', {
@@ -103,11 +103,12 @@ export class SocketService {
     return this.connectedUsers.get(userId)?.size || 0;
   }
   public broadcastUserStatus(userId: string, username: string, status: 'online' | 'offline'): void {
-    this.io.emit('user:' + status, {
+    const eventName = status === 'online' ? 'user:online' : 'user:offline';
+    this.io.emit(eventName, {
       userId,
       username,
       status,
-      lastSeen: status === 'offline' ? new Date().toISOString() : undefined
+      ...(status === 'offline' && { lastSeen: new Date().toISOString() })
     });
     Logger.info(`[SOCKET] User status broadcasted: ${status}`, {
       userId,
@@ -117,10 +118,10 @@ export class SocketService {
     });
   }
   public emitToUser(userId: string, event: string, data: any): void {
-    this.io.to(`user:${userId}`).emit(event, data);
+    this.io.to(`user:${userId}`).emit(event as any, data);
   }
   public emitToConversation(conversationId: string, event: string, data: any): void {
-    this.io.to(`conversation:${conversationId}`).emit(event, data);
+    this.io.to(`conversation:${conversationId}`).emit(event as any, data);
   }
   public emitToConversationExceptUser(conversationId: string, excludeUserId: string, event: string, data: any): void {
     const room = this.io.sockets.adapter.rooms.get(`conversation:${conversationId}`);
@@ -143,3 +144,18 @@ export class SocketService {
     return this.io.engine.clientsCount;
   }
 }
+
+// Export singleton instance - will be initialized in server.ts
+let socketServiceInstance: SocketService | null = null;
+
+export const getSocketService = (): SocketService => {
+  if (!socketServiceInstance) {
+    throw new Error('SocketService not initialized');
+  }
+  return socketServiceInstance;
+};
+
+export const initializeSocketService = (httpServer: any): SocketService => {
+  socketServiceInstance = new SocketService(httpServer);
+  return socketServiceInstance;
+};

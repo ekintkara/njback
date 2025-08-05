@@ -2,7 +2,7 @@ import * as amqp from 'amqplib';
 import { rabbitmqConfig, QueueMessageData } from '../config/rabbitmq';
 import { messageConsumerService } from '../services/message-consumer.service';
 import { ConsumerConfig, ConsumerStats, CONSUMER_EVENTS } from '../types/consumer.types';
-import { socketService } from '../socket/socket.service';
+import { getSocketService } from '../socket/socket.service';
 import { userStatusService } from '../services/user-status.service';
 import Logger from '../utils/logger';
 import { EventEmitter } from 'events';
@@ -164,7 +164,7 @@ export class MessageSubscriber extends EventEmitter {
         return;
       }
       const notificationData = messageConsumerService.createNotificationData(message);
-      socketService.emitToUser(queueMessage.receiverId, 'message_received', notificationData);
+      getSocketService().emitToUser(queueMessage.receiverId, 'message_received', notificationData);
       Logger.info('[MESSAGE_SUBSCRIBER] Notification sent to online receiver', {
         receiverId: queueMessage.receiverId,
         messageId: result.messageId,

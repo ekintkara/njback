@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+
 import { config } from './config/env';
 import { initSentry } from './config/sentry';
 import { errorHandler } from './api/middlewares/error.middleware';
@@ -36,6 +37,7 @@ export function createApp(): Application {
   app.use(limiter);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({
       success: true,
@@ -45,9 +47,10 @@ export function createApp(): Application {
     });
   });
   app.use('/api/auth', authRoutes);
-  app.use('/api/user', userRoutes);
+  app.use('/api/users', userRoutes);
   app.use('/api/conversations', conversationRoutes);
   app.use('/api/messages', messageRoutes);
+
   app.use('*', (req: Request, res: Response) => {
     Logger.warn(`Route not found: ${req.method} ${req.originalUrl}`, {
       method: req.method,
