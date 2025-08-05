@@ -1,9 +1,7 @@
 import winston from 'winston';
 import path from 'path';
 import { config } from './env';
-
 const logDir = 'logs';
-
 const logFormat = winston.format.combine(
   winston.format.timestamp({
     format: 'YYYY-MM-DD HH:mm:ss'
@@ -12,7 +10,6 @@ const logFormat = winston.format.combine(
   winston.format.json(),
   winston.format.prettyPrint()
 );
-
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({
@@ -27,7 +24,6 @@ const consoleFormat = winston.format.combine(
     return `${timestamp} [${level}]: ${message}${metaStr}`;
   })
 );
-
 const createLogger = () => {
   const transports: winston.transport[] = [
     new winston.transports.Console({
@@ -35,25 +31,23 @@ const createLogger = () => {
       format: consoleFormat
     })
   ];
-
   if (config.NODE_ENV !== 'test') {
     transports.push(
       new winston.transports.File({
         filename: path.join(logDir, 'error.log'),
         level: 'error',
         format: logFormat,
-        maxsize: 10 * 1024 * 1024, // 10MB
+        maxsize: 10 * 1024 * 1024, 
         maxFiles: 5
       }),
       new winston.transports.File({
         filename: path.join(logDir, 'combined.log'),
         format: logFormat,
-        maxsize: 10 * 1024 * 1024, // 10MB
+        maxsize: 10 * 1024 * 1024, 
         maxFiles: 5
       })
     );
   }
-
   return winston.createLogger({
     level: config.NODE_ENV === 'production' ? 'info' : 'debug',
     format: logFormat,
@@ -61,7 +55,5 @@ const createLogger = () => {
     exitOnError: false
   });
 };
-
 export const logger = createLogger();
-
 export default logger;

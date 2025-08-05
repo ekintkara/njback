@@ -3,7 +3,6 @@ import { validate, ValidationError } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { validationResult } from 'express-validator';
 import { AppError } from '../../utils/app-error';
-
 export function validationMiddleware<T extends object>(
   dtoClass: new () => T,
   source: 'body' | 'query' = 'body',
@@ -13,13 +12,11 @@ export function validationMiddleware<T extends object>(
     try {
       const sourceData = source === 'query' ? req.query : req.body;
       const dto = plainToClass(dtoClass, sourceData);
-
       const errors: ValidationError[] = await validate(dto, {
         skipMissingProperties,
         whitelist: true,
         forbidNonWhitelisted: false
       });
-
       if (errors.length > 0) {
         throw new AppError(
           'Validation failed',
@@ -27,7 +24,6 @@ export function validationMiddleware<T extends object>(
           'VALIDATION_ERROR'
         );
       }
-
       if (source === 'query') {
         req.query = dto as any;
       } else {
@@ -43,7 +39,6 @@ export function validationMiddleware<T extends object>(
     }
   };
 }
-
 export const validateRequest = (req: Request, _res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

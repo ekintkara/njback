@@ -1,11 +1,9 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
-
 export interface ILastMessage {
   content: string;
   sender: Types.ObjectId;
   timestamp: Date;
 }
-
 export interface IConversation extends Document {
   _id: Types.ObjectId;
   participants: Types.ObjectId[];
@@ -16,7 +14,6 @@ export interface IConversation extends Document {
   getOtherParticipant(userId: Types.ObjectId): Types.ObjectId | null;
   updateLastMessage(content: string, senderId: Types.ObjectId): Promise<IConversation>;
 }
-
 const LastMessageSchema = new Schema<ILastMessage>({
   content: {
     type: String,
@@ -35,7 +32,6 @@ const LastMessageSchema = new Schema<ILastMessage>({
     default: Date.now
   }
 }, { _id: false });
-
 const ConversationSchema = new Schema<IConversation>({
   participants: [{
     type: Schema.Types.ObjectId,
@@ -57,13 +53,9 @@ const ConversationSchema = new Schema<IConversation>({
     }
   }
 });
-
-// Indexes for efficient queries
 ConversationSchema.index({ participants: 1 });
 ConversationSchema.index({ updatedAt: -1 });
 ConversationSchema.index({ participants: 1, updatedAt: -1 });
-
-// Validation: Ensure exactly 2 participants
 ConversationSchema.pre('validate', function(next) {
   if (this.participants.length !== 2) {
     next(new Error('Conversation must have exactly 2 participants'));
@@ -71,8 +63,6 @@ ConversationSchema.pre('validate', function(next) {
     next();
   }
 });
-
-// Validation: Ensure participants are different
 ConversationSchema.pre('validate', function(next) {
   const [participant1, participant2] = this.participants;
   if (participant1.toString() === participant2.toString()) {
@@ -81,8 +71,6 @@ ConversationSchema.pre('validate', function(next) {
     next();
   }
 });
-
-// Static method to find conversation between two users
 ConversationSchema.statics.findBetweenUsers = function(userId1: Types.ObjectId, userId2: Types.ObjectId) {
   return this.findOne({
     participants: {
@@ -91,8 +79,6 @@ ConversationSchema.statics.findBetweenUsers = function(userId1: Types.ObjectId, 
     }
   }).populate('participants', 'username email');
 };
-
-// Static method to find user conversations
 ConversationSchema.statics.findUserConversations = function(userId: Types.ObjectId) {
   return this.find({
     participants: userId
@@ -101,23 +87,17 @@ ConversationSchema.statics.findUserConversations = function(userId: Types.Object
   .populate('lastMessage.sender', 'username')
   .sort({ updatedAt: -1 });
 };
-
-// Instance method to check if user is participant
 ConversationSchema.methods.isParticipant = function(userId: Types.ObjectId): boolean {
   return this.participants.some((participant: Types.ObjectId) => 
     participant.toString() === userId.toString()
   );
 };
-
-// Instance method to get other participant
 ConversationSchema.methods.getOtherParticipant = function(userId: Types.ObjectId): Types.ObjectId | null {
   const otherParticipant = this.participants.find((participant: Types.ObjectId) => 
     participant.toString() !== userId.toString()
   );
   return otherParticipant || null;
 };
-
-// Instance method to update last message
 ConversationSchema.methods.updateLastMessage = function(content: string, senderId: Types.ObjectId) {
   this.lastMessage = {
     content,
@@ -127,12 +107,9 @@ ConversationSchema.methods.updateLastMessage = function(content: string, senderI
   this.updatedAt = new Date();
   return this.save();
 };
-
 export interface IConversationModel extends mongoose.Model<IConversation> {
   findBetweenUsers(userId1: Types.ObjectId, userId2: Types.ObjectId): Promise<IConversation | null>;
   findUserConversations(userId: Types.ObjectId): Promise<IConversation[]>;
 }
-
 const Conversation = mongoose.model<IConversation, IConversationModel>('Conversation', ConversationSchema);
-
 export default Conversation;

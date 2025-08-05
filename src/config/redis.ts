@@ -1,6 +1,5 @@
 import Redis from 'ioredis';
 import Logger from '../utils/logger';
-
 export interface RedisConfig {
   host: string;
   port: number;
@@ -11,7 +10,6 @@ export interface RedisConfig {
   maxRetriesPerRequest: number;
   lazyConnect: boolean;
 }
-
 export const redisConfig: RedisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379'),
@@ -22,12 +20,10 @@ export const redisConfig: RedisConfig = {
   maxRetriesPerRequest: 3,
   lazyConnect: true
 };
-
 class RedisClient {
   private static instance: RedisClient;
   private client: Redis;
   private isConnected: boolean = false;
-
   private constructor() {
     const config: any = {
       host: redisConfig.host,
@@ -38,22 +34,18 @@ class RedisClient {
       maxRetriesPerRequest: redisConfig.maxRetriesPerRequest,
       lazyConnect: redisConfig.lazyConnect
     };
-
     if (redisConfig.password) {
       config.password = redisConfig.password;
     }
-
     this.client = new Redis(config);
     this.setupEventHandlers();
   }
-
   public static getInstance(): RedisClient {
     if (!RedisClient.instance) {
       RedisClient.instance = new RedisClient();
     }
     return RedisClient.instance;
   }
-
   private setupEventHandlers(): void {
     this.client.on('connect', () => {
       this.isConnected = true;
@@ -63,11 +55,9 @@ class RedisClient {
         db: redisConfig.db
       });
     });
-
     this.client.on('ready', () => {
       Logger.info('Redis client ready');
     });
-
     this.client.on('error', (error: Error) => {
       this.isConnected = false;
       Logger.error('Redis connection error', error, {
@@ -75,17 +65,14 @@ class RedisClient {
         port: redisConfig.port
       });
     });
-
     this.client.on('close', () => {
       this.isConnected = false;
       Logger.warn('Redis connection closed');
     });
-
     this.client.on('reconnecting', () => {
       Logger.info('Redis reconnecting...');
     });
   }
-
   public async connect(): Promise<void> {
     try {
       if (!this.isConnected) {
@@ -97,7 +84,6 @@ class RedisClient {
       throw error;
     }
   }
-
   public async disconnect(): Promise<void> {
     try {
       if (this.isConnected) {
@@ -110,15 +96,12 @@ class RedisClient {
       throw error;
     }
   }
-
   public getClient(): Redis {
     return this.client;
   }
-
   public isClientConnected(): boolean {
     return this.isConnected;
   }
-
   public async ping(): Promise<string> {
     try {
       return await this.client.ping();
@@ -127,7 +110,6 @@ class RedisClient {
       throw error;
     }
   }
-
   public async flushdb(): Promise<string> {
     try {
       return await this.client.flushdb();
@@ -137,6 +119,5 @@ class RedisClient {
     }
   }
 }
-
 export const redisClient = RedisClient.getInstance();
 export default redisClient;

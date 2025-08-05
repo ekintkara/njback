@@ -1,5 +1,4 @@
 import { JWTPayload } from '../services/auth.service';
-
 declare global {
   namespace Express {
     interface Request {
@@ -7,5 +6,4 @@ declare global {
     }
   }
 }
-
 export {};

@@ -1,11 +1,9 @@
 import User from '../models/user.model';
 import { AppError } from '../utils/app-error';
-
 export interface UserListQuery {
   page?: number;
   limit?: number;
 }
-
 export interface UserListResponse {
   users: Array<{
     id: string;
@@ -22,24 +20,20 @@ export interface UserListResponse {
     hasPrevPage: boolean;
   };
 }
-
 export class UserService {
   async getUserList(query: UserListQuery): Promise<UserListResponse> {
     try {
       const page = query.page || 1;
       const limit = query.limit || 10;
       const skip = (page - 1) * limit;
-
       const totalUsers = await User.countDocuments();
       const totalPages = Math.ceil(totalUsers / limit);
-
       const users = await User.find()
         .select('-password')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean();
-
       const userList = users.map(user => ({
         id: user._id.toString(),
         username: user.username,
@@ -47,7 +41,6 @@ export class UserService {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       }));
-
       return {
         users: userList,
         pagination: {

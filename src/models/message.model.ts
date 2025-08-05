@@ -1,5 +1,4 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
-
 export interface IMessage extends Document {
   _id: Types.ObjectId;
   conversationId: Types.ObjectId;
@@ -9,7 +8,6 @@ export interface IMessage extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
 const MessageSchema = new Schema<IMessage>({
   conversationId: {
     type: Schema.Types.ObjectId,
@@ -45,28 +43,20 @@ const MessageSchema = new Schema<IMessage>({
     }
   }
 });
-
-// Compound index for efficient pagination queries
 MessageSchema.index({ conversationId: 1, createdAt: -1 });
-
-// Index for read status queries
 MessageSchema.index({ conversationId: 1, isRead: 1 });
-
 export interface IMessageModel extends mongoose.Model<IMessage> {
   findByConversationId(conversationId: Types.ObjectId, page: number, limit: number): Promise<{
     messages: IMessage[];
     total: number;
   }>;
 }
-
-// Static method to find messages by conversation with pagination
 MessageSchema.statics.findByConversationId = async function(
   conversationId: Types.ObjectId, 
   page: number = 1, 
   limit: number = 20
 ) {
   const skip = (page - 1) * limit;
-  
   const [messages, total] = await Promise.all([
     this.find({ conversationId })
       .populate('senderId', 'username email')
@@ -76,10 +66,7 @@ MessageSchema.statics.findByConversationId = async function(
       .lean(),
     this.countDocuments({ conversationId })
   ]);
-
   return { messages, total };
 };
-
 const Message = mongoose.model<IMessage, IMessageModel>('Message', MessageSchema);
-
 export default Message;

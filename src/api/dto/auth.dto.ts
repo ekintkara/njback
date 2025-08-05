@@ -1,5 +1,4 @@
 import { IsEmail, IsString, MinLength, MaxLength, Matches, IsOptional } from 'class-validator';
-
 export class RegisterDto {
   @IsString({ message: 'Username must be a string' })
   @MinLength(3, { message: 'Username must be at least 3 characters long' })
@@ -8,10 +7,8 @@ export class RegisterDto {
     message: 'Username can only contain letters, numbers, and underscores'
   })
   username!: string;
-
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email!: string;
-
   @IsString({ message: 'Password must be a string' })
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
@@ -19,22 +16,18 @@ export class RegisterDto {
   })
   password!: string;
 }
-
 export class LoginDto {
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email!: string;
-
   @IsString({ message: 'Password must be a string' })
   @MinLength(1, { message: 'Password is required' })
   password!: string;
 }
-
 export class RefreshTokenDto {
   @IsString({ message: 'Refresh token must be a string' })
   @MinLength(1, { message: 'Refresh token is required' })
   refreshToken!: string;
 }
-
 export class UpdateProfileDto {
   @IsOptional()
   @IsString({ message: 'Username must be a string' })
@@ -44,12 +37,10 @@ export class UpdateProfileDto {
     message: 'Username can only contain letters, numbers, and underscores'
   })
   username?: string;
-
   @IsOptional()
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email?: string;
 }
-
 export class LogoutDto {
   @IsString({ message: 'Refresh token must be a string' })
   @MinLength(1, { message: 'Refresh token is required' })

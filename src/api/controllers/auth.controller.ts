@@ -2,20 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../services/auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto, UpdateProfileDto, LogoutDto } from '../dto/auth.dto';
 import User from '../../models/user.model';
-
 export class AuthController {
   private authService: AuthService;
-
   constructor() {
     this.authService = new AuthService();
   }
-
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const registerData: RegisterDto = req.body;
-
       const tokens = await this.authService.register(registerData);
-
       res.status(201).json({
         success: true,
         message: 'User registered successfully',
@@ -25,13 +20,10 @@ export class AuthController {
       next(error);
     }
   };
-
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const loginData: LoginDto = req.body;
-
       const tokens = await this.authService.login(loginData);
-
       res.status(200).json({
         success: true,
         message: 'Login successful',
@@ -41,13 +33,10 @@ export class AuthController {
       next(error);
     }
   };
-
   refreshTokens = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const refreshTokenData: RefreshTokenDto = req.body;
-
       const tokens = await this.authService.refreshTokens(refreshTokenData);
-
       res.status(200).json({
         success: true,
         message: 'Tokens refreshed successfully',
@@ -57,18 +46,15 @@ export class AuthController {
       next(error);
     }
   };
-
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
         throw new Error('User not found in request');
       }
-
       const user = await User.findById(req.user.userId);
       if (!user) {
         throw new Error('User not found in database');
       }
-
       res.status(200).json({
         success: true,
         data: {
@@ -83,17 +69,13 @@ export class AuthController {
       next(error);
     }
   };
-
   updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
         throw new Error('User not found in request');
       }
-
       const updateData: UpdateProfileDto = req.body;
-
       const updatedUser = await this.authService.updateProfile(req.user.userId, updateData);
-
       res.status(200).json({
         success: true,
         message: 'Profile updated successfully',
@@ -109,13 +91,10 @@ export class AuthController {
       next(error);
     }
   };
-
   logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const logoutData: LogoutDto = req.body;
-
       await this.authService.logout(logoutData);
-
       res.status(200).json({
         success: true,
         message: 'Logged out successfully'

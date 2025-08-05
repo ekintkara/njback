@@ -2,13 +2,11 @@ import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { config } from './env';
 import { logger } from './logger';
-
 export const initSentry = () => {
   if (!config.SENTRY_DSN) {
     logger.warn('Sentry DSN not configured, error tracking disabled');
     return;
   }
-
   Sentry.init({
     dsn: config.SENTRY_DSN,
     environment: config.NODE_ENV,
@@ -31,10 +29,8 @@ export const initSentry = () => {
       return event;
     }
   });
-
   logger.info('Sentry initialized successfully');
 };
-
 export const captureException = (error: Error, context?: Record<string, any>) => {
   if (config.SENTRY_DSN) {
     Sentry.withScope((scope) => {
@@ -46,14 +42,12 @@ export const captureException = (error: Error, context?: Record<string, any>) =>
       Sentry.captureException(error);
     });
   }
-  
   logger.error('Exception captured', {
     error: error.message,
     stack: error.stack,
     context
   });
 };
-
 export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>) => {
   if (config.SENTRY_DSN) {
     Sentry.withScope((scope) => {
@@ -65,20 +59,16 @@ export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'i
       Sentry.captureMessage(message, level);
     });
   }
-
   logger.log(level, message, context);
 };
-
 export const setUserContext = (user: { id: string; email?: string; username?: string }) => {
   if (config.SENTRY_DSN) {
     const sentryUser: any = { id: user.id };
     if (user.email) sentryUser.email = user.email;
     if (user.username) sentryUser.username = user.username;
-
     Sentry.setUser(sentryUser);
   }
 };
-
 export const addBreadcrumb = (message: string, category: string, data?: Record<string, any>) => {
   if (config.SENTRY_DSN) {
     const breadcrumb: any = {
@@ -87,10 +77,8 @@ export const addBreadcrumb = (message: string, category: string, data?: Record<s
       timestamp: Date.now() / 1000
     };
     if (data) breadcrumb.data = data;
-
     Sentry.addBreadcrumb(breadcrumb);
   }
 };
-
 export { Sentry };
 export default Sentry;
